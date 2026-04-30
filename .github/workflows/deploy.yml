@@ -22,8 +22,10 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy item-service \
+          gcloud run deploy lost-found-item-service \
             --source . \
             --region us-central1 \
             --allow-unauthenticated \
-            --set-env-vars MATCHING_URL=https://matching-service-512993707354.us-central1.run.app
+            --add-cloudsql-instances swe455hw2:us-central1:lost-found-postgres \
+            --set-env-vars DATABASE_URL='postgresql://lostfounduser:LostFound12345!@/lostfound?host=/cloudsql/swe455hw2:us-central1:lost-found-postgres',ITEM_CREATED_TOPIC=item-created \
+            --quiet
