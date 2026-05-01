@@ -1,9 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const { Pool } = require("pg");
+const { PubSub } = require("@google-cloud/pubsub");
 
 const app = express();
 app.use(express.json());
+
+const pubsub = new PubSub();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -27,7 +30,12 @@ async function initDb() {
 initDb();
 
 app.get("/", (req, res) => {
-  res.json({ service: "item-service", status: "running", database: "connected" });
+  res.json({
+    service: "item-service",
+    status: "running",
+    database: "connected",
+    eventBus: "pubsub"
+  });
 });
 
 app.post("/items", async (req, res) => {
@@ -42,13 +50,14 @@ app.post("/items", async (req, res) => {
 
   const item = result.rows[0];
 
-  await fetch(`${process.env.MATCHING_URL}/match`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(item),
+  await pubsub.topic(process.env.ITEM_CREATED_TOPIC).publishMessage({
+    json: item,
   });
 
-  res.json({ message: "Item reported successfully", item });
+  res.json({
+    message: "Item reported successfully and event published",
+    item,
+  });
 });
 
 app.get("/items", async (req, res) => {
