@@ -43,20 +43,27 @@ app.post("/items", async (req, res) => {
 
   const result = await pool.query(
     `INSERT INTO items (type, title, description, category, location, contact)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
     [type, title, description, category, location, contact]
   );
 
   const item = result.rows[0];
 
-  await pubsub.topic(process.env.ITEM_CREATED_TOPIC).publishMessage({
-    json: item,
-  });
+  const oppositeType = item.type === "lost" ? "found" : "lost";
+
+  const matchResult = await pool.query(
+    `SELECT * FROM items
+     WHERE type = $1
+       AND category = $2
+       AND id != $3`,
+    [oppositeType, item.category, item.id]
+  );
+
+  const matches = matchResult.rows;
 
   res.json({
-    message: "Item reported successfully and event published",
     item,
+    matches
   });
 });
 
