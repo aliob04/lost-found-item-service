@@ -61,6 +61,16 @@ app.post("/items", async (req, res) => {
 });
 
 app.get("/items", async (req, res) => {
+  const type = req.query.type;
+
+  if (type) {
+    const result = await pool.query(
+      "SELECT * FROM items WHERE type = $1 ORDER BY id DESC",
+      [type]
+    );
+    return res.json(result.rows);
+  }
+
   const result = await pool.query("SELECT * FROM items ORDER BY id DESC");
   res.json(result.rows);
 });
